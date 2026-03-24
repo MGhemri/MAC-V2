@@ -12,6 +12,7 @@ public:
 
     void begin();
     void broadcastUpdate(int relayId, int state);
+    void cleanup();
 
 private:
     ApiServer();

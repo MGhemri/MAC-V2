@@ -114,6 +114,10 @@ void ApiServer::broadcastUpdate(int relayId, int state) {
     _ws.textAll(response);
 }
 
+void ApiServer::cleanup() {
+    _ws.cleanupClients();
+}
+
 void ApiServer::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
     if (type == WS_EVT_CONNECT) {
         client->printf("Connected to ESP32 WebSocket");
@@ -125,7 +129,14 @@ void Task_API(void *pvParameters) {
     WiFiUDP udp;
     udp.begin(4210); // Discovery port
 
+    unsigned long lastCleanup = 0;
+
     for (;;) {
+        if (millis() - lastCleanup > 5000) {
+            ApiServer::getInstance().cleanup();
+            lastCleanup = millis();
+        }
+
         // UDP Discovery response
         int packetSize = udp.parsePacket();
         if (packetSize) {
