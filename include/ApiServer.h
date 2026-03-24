@@ -4,6 +4,7 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include <ArduinoJson.h>
+#include <WiFiUdp.h>
 
 class ApiServer {
 public:
@@ -16,6 +17,7 @@ private:
     ApiServer();
     AsyncWebServer _server;
     AsyncWebSocket _ws;
+    WiFiUDP _udp;
 
     void setupRoutes();
     void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);

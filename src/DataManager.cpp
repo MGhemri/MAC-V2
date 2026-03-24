@@ -31,6 +31,8 @@ void DataManager::setDefaultConfig() {
     _config.system.lcd_enabled = true;
     _config.system.admin_token = "secret123";
     _config.system.relay_polarity = "LOW";
+    _config.system.wifi_ssid = "";
+    _config.system.wifi_pass = "";
 }
 
 bool DataManager::loadConfig() {
@@ -58,6 +60,8 @@ bool DataManager::loadConfig() {
                 _config.system.lcd_enabled = system["lcd_enabled"] | true;
                 _config.system.admin_token = system["admin_token"].as<const char*>() ? system["admin_token"].as<String>() : "secret123";
                 _config.system.relay_polarity = system["relay_polarity"].as<const char*>() ? system["relay_polarity"].as<String>() : "LOW";
+                _config.system.wifi_ssid = system["wifi_ssid"].as<const char*>() ? system["wifi_ssid"].as<String>() : "";
+                _config.system.wifi_pass = system["wifi_pass"].as<const char*>() ? system["wifi_pass"].as<String>() : "";
                 result = true;
             }
             file.close();
@@ -89,6 +93,8 @@ bool DataManager::saveConfig() {
     system["lcd_enabled"] = _config.system.lcd_enabled;
     system["admin_token"] = _config.system.admin_token;
     system["relay_polarity"] = _config.system.relay_polarity;
+    system["wifi_ssid"] = _config.system.wifi_ssid;
+    system["wifi_pass"] = _config.system.wifi_pass;
 
     File file = LittleFS.open(CONFIG_FILE_PATH, "w");
     bool result = false;
@@ -116,6 +122,15 @@ void DataManager::setRelayState(int id, int state) {
     if (id < 1 || id > MAX_RELAYS) return;
     if (xSemaphoreTake(mutexNVS, pdMS_TO_TICKS(1000)) == pdTRUE) {
         _config.relays[id - 1].state = state;
+        xSemaphoreGive(mutexNVS);
+        saveConfig();
+    }
+}
+
+void DataManager::setWifiCredentials(String ssid, String pass) {
+    if (xSemaphoreTake(mutexNVS, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        _config.system.wifi_ssid = ssid;
+        _config.system.wifi_pass = pass;
         xSemaphoreGive(mutexNVS);
         saveConfig();
     }

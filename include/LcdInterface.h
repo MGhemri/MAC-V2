@@ -3,6 +3,9 @@
 
 #include <LiquidCrystal_I2C.h>
 #include <LcdMenu.h>
+#include <MenuItem.h>
+#include <ItemCommand.h>
+#include <ItemSubMenu.h>
 #include "Config.h"
 
 class LcdInterface {
@@ -12,6 +15,7 @@ public:
     void begin();
     void update();
     void processInput(InputEvent event);
+    void showConnectionInfo();
 
 private:
     LcdInterface();
@@ -19,6 +23,7 @@ private:
 
     unsigned long _lastActivity;
     bool _isIdle;
+    bool _isShowingIP;
 
     void showIdleScreen();
 };

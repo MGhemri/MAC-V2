@@ -18,6 +18,8 @@ struct SystemConfig {
     bool lcd_enabled;
     String admin_token;
     String relay_polarity;
+    String wifi_ssid;
+    String wifi_pass;
 };
 
 struct AppConfig {
@@ -38,6 +40,7 @@ public:
     void setRelayState(int id, int state);
     bool setRelayConfig(int id, String mode, String custom_name);
     void setLcdEnabled(bool enabled);
+    void setWifiCredentials(String ssid, String pass);
 
     // Mutex for I2C and NVS/LittleFS
     static SemaphoreHandle_t mutexNVS;

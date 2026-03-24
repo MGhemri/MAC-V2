@@ -3,7 +3,7 @@
 #include "Hardware.h"
 #include <WiFi.h>
 
-// Helper functions for menu
+// Action callbacks
 void actionToggleRelay1() { Hardware::getInstance().toggleRelay(1); }
 void actionToggleRelay2() { Hardware::getInstance().toggleRelay(2); }
 void actionToggleRelay3() { Hardware::getInstance().toggleRelay(3); }
@@ -14,23 +14,23 @@ void actionToggleRelay7() { Hardware::getInstance().toggleRelay(7); }
 void actionToggleRelay8() { Hardware::getInstance().toggleRelay(8); }
 void actionReboot() { ESP.restart(); }
 
-// Simplified structure to avoid macro issues
-// Based on LcdMenu v3.x source, MenuItem is the base class
+// Correct LcdMenu v3.x syntax: ItemHeader and ItemFooter might not be separate files or needed.
+// Based on the file list, ItemCommand and ItemSubMenu exist.
 MenuItem* mainMenu[] = {
-    new MenuItem("Relay 1", 1), // Using type 1 (command) if supported
-    new MenuItem("Relay 2", 1),
-    new MenuItem("Relay 3", 1),
-    new MenuItem("Relay 4", 1),
-    new MenuItem("Relay 5", 1),
-    new MenuItem("Relay 6", 1),
-    new MenuItem("Relay 7", 1),
-    new MenuItem("Relay 8", 1),
-    new MenuItem("Reboot", 1)
+    new ItemCommand("Relay 1", actionToggleRelay1),
+    new ItemCommand("Relay 2", actionToggleRelay2),
+    new ItemCommand("Relay 3", actionToggleRelay3),
+    new ItemCommand("Relay 4", actionToggleRelay4),
+    new ItemCommand("Relay 5", actionToggleRelay5),
+    new ItemCommand("Relay 6", actionToggleRelay6),
+    new ItemCommand("Relay 7", actionToggleRelay7),
+    new ItemCommand("Relay 8", actionToggleRelay8),
+    new ItemCommand("Reboot", actionReboot)
 };
 
 LcdMenu menu(LCD_ROWS, LCD_COLS);
 
-LcdInterface::LcdInterface() : _lcd(LCD_ADDR, LCD_COLS, LCD_ROWS), _lastActivity(0), _isIdle(true) {}
+LcdInterface::LcdInterface() : _lcd(LCD_ADDR, LCD_COLS, LCD_ROWS), _lastActivity(0), _isIdle(true), _isShowingIP(false) {}
 
 LcdInterface& LcdInterface::getInstance() {
     static LcdInterface instance;
@@ -43,7 +43,8 @@ void LcdInterface::begin() {
         _lcd.backlight();
         xSemaphoreGive(DataManager::mutexI2C);
     }
-    menu.setupLcdWithMenu(0x27, mainMenu, 9);
+    // Library v3.5.x setup
+    menu.setupLcdWithMenu(0x27, mainMenu);
     showIdleScreen();
 }
 
@@ -53,8 +54,12 @@ void LcdInterface::showIdleScreen() {
         _lcd.setCursor(0, 0);
         _lcd.print("MAC-V2 Controller");
         _lcd.setCursor(0, 1);
-        _lcd.print("IP: ");
-        _lcd.print(WiFi.localIP());
+        if (WiFi.getMode() == WIFI_AP) {
+            _lcd.print("AP: MAC-V2-CONFIG");
+        } else {
+            _lcd.print("IP: ");
+            _lcd.print(WiFi.localIP());
+        }
 
         AppConfig cfg = DataManager::getInstance().getConfig();
         int active = 0;
@@ -70,10 +75,34 @@ void LcdInterface::showIdleScreen() {
         xSemaphoreGive(DataManager::mutexI2C);
     }
     _isIdle = true;
+    _isShowingIP = false;
+}
+
+void LcdInterface::showConnectionInfo() {
+    if (xSemaphoreTake(DataManager::mutexI2C, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        _lcd.clear();
+        _lcd.setCursor(0, 0);
+        _lcd.print("WiFi Connecte !");
+        _lcd.setCursor(0, 1);
+        _lcd.print("IP: ");
+        _lcd.print(WiFi.localIP());
+        _lcd.setCursor(0, 3);
+        _lcd.print("Cliquez pour menu");
+        xSemaphoreGive(DataManager::mutexI2C);
+    }
+    _isShowingIP = true;
+    _isIdle = false;
 }
 
 void LcdInterface::processInput(InputEvent event) {
     _lastActivity = millis();
+
+    if (_isShowingIP) {
+        if (event == InputEvent::CLICK) {
+            showIdleScreen();
+        }
+        return;
+    }
 
     if (_isIdle) {
         if (event == InputEvent::CLICK) {
